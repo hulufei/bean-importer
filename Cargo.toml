@@ -1,0 +1,10 @@
+[package]
+name = "bean-importer"
+version = "0.1.0"
+authors = ["hui <ihulufei@icloud.com>"]
+edition = "2018"
+
+[dependencies]
+csv="1.1"
+toml = "0.5.6"
+structopt = "0.3.12"
