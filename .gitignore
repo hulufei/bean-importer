@@ -4,3 +4,4 @@
 move-docs.sh
 beancount/
 rules.toml
+importer_citic.rs

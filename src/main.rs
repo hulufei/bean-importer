@@ -1,14 +1,15 @@
-mod common;
-mod importer_csv;
+mod importers;
+mod lib;
+#[cfg(test)]
+mod test_helpers;
 
-use importer_csv::{import_alipay, import_wechat};
-use std::error::Error;
-use std::fmt;
+use crate::importers::{alipay, wechat};
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
 use std::str::FromStr;
 use structopt::StructOpt;
+use thiserror::Error;
 
 #[derive(Debug)]
 enum Source {
@@ -16,14 +17,9 @@ enum Source {
     Alipay,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
+#[error("Unknown source type: {0}")]
 struct ParseSourceError(String);
-
-impl fmt::Display for ParseSourceError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Unknown source {}", self.0)
-    }
-}
 
 impl FromStr for Source {
     type Err = ParseSourceError;
@@ -57,16 +53,16 @@ struct Opt {
     output: Option<PathBuf>,
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> anyhow::Result<()> {
     let opt = Opt::from_args();
     let bean = match opt.source {
-        Source::Alipay => import_alipay(opt.input)?,
-        Source::Wechat => import_wechat(opt.input)?,
+        Source::Alipay => alipay::import(opt.input)?,
+        Source::Wechat => wechat::import(opt.input)?,
     };
     match opt.output {
         Some(path) => {
             let mut file = File::create(path)?;
-            file.write_all(bean.to_string().as_bytes())?;
+            file.write_all(bean.as_bytes())?;
             println!("Import success!");
         }
         None => println!("{}", bean),
