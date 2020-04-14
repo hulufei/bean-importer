@@ -144,8 +144,12 @@ impl Bean {
         let mut output = String::new();
         for transaction in &self.transactions {
             let payee = transaction.payee()?;
-            let to_account = rules.get(&payee).and_then(|v| v.as_str()).unwrap_or("");
             let flow = transaction.flow()?;
+            let mut to_account = rules
+                .get(&payee)
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_owned();
 
             let flag = if to_account.is_empty() || flow.is_unknown() {
                 "!"
@@ -164,10 +168,14 @@ impl Bean {
                 metadata.insert_str(0, "\n  ");
             }
 
+            if !to_account.is_empty() {
+                to_account.push(' ');
+            }
+
             output.push_str(
                 format!(
                     r##"{date} {flag} "{payee}" "{narration}"{metadata}
-  {account} {amount} CNY
+  {account}{amount} CNY
   {fund_account}"##,
                     date = transaction.date()?,
                     payee = payee,
