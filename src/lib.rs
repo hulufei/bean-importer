@@ -45,6 +45,8 @@ pub trait Transaction {
     #[throws]
     fn narration(&self) -> String;
 
+    /// Keys must begin with a lowercase character from a-z and may contain (uppercase or lowercase) letters,
+    /// numbers, dashes and underscores.
     #[throws]
     fn metadata(&self) -> Vec<(String, String)> {
         vec![]
@@ -144,21 +146,36 @@ impl Bean {
             let payee = transaction.payee()?;
             let to_account = rules.get(&payee).and_then(|v| v.as_str()).unwrap_or("");
             let flow = transaction.flow()?;
+
+            let flag = if to_account.is_empty() || flow.is_unknown() {
+                "!"
+            } else {
+                "*"
+            };
+
+            let mut metadata = transaction
+                .metadata()?
+                .iter()
+                .map(|(k, v)| format!(r#"{}: "{}""#, k, v))
+                .collect::<Vec<_>>()
+                .join("\n");
+
+            if !metadata.is_empty() {
+                metadata.insert_str(0, "\n  ");
+            }
+
             output.push_str(
                 format!(
-                    r##"{date} {flag} "{payee}" "{narration}"
+                    r##"{date} {flag} "{payee}" "{narration}"{metadata}
   {account} {amount} CNY
   {fund_account}"##,
                     date = transaction.date()?,
                     payee = payee,
                     narration = transaction.narration()?,
-                    flag = if to_account.is_empty() || flow.is_unknown() {
-                        "!"
-                    } else {
-                        "*"
-                    },
+                    flag = flag,
                     account = to_account,
                     amount = transaction.amount()?,
+                    metadata = metadata,
                     fund_account = self.fund_account
                 )
                 .as_str(),

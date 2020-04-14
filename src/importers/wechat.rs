@@ -57,6 +57,15 @@ impl Transaction for Wechat {
         let flow = self.pick("flow", 4, Self::default_transform)?;
         Flow::from(flow.as_str())
     }
+
+    #[throws]
+    fn metadata(&self) -> Vec<(String, String)> {
+        let mut meta = vec![];
+        if let Flow::Unknown(s) = self.flow()? {
+            meta.push(("unknown_flow".to_owned(), s))
+        }
+        meta
+    }
 }
 
 #[throws]
@@ -118,5 +127,20 @@ mod tests {
         let r = gen_record(&t.as_string())?;
         let wechat = Wechat::new(r);
         assert_eq!(wechat.date()?, "2020-03-30")
+    }
+
+    #[test]
+    #[throws]
+    fn add_unknown_flow_to_metadata() {
+        let t = Trans {
+            flow: "unknownflow",
+            ..Trans::default()
+        };
+        let r = gen_record(&t.as_string())?;
+        let wechat = Wechat::new(r);
+        assert_eq!(
+            wechat.metadata()?,
+            vec![("UnknownFlow".to_owned(), "unknownflow".to_owned())]
+        )
     }
 }
