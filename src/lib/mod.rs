@@ -1,15 +1,12 @@
-use anyhow::{anyhow, Context};
-use fehler::{throw, throws};
-use std::collections::HashMap;
-use std::env::var;
-use std::fs::OpenOptions;
-use std::io::Read;
-use std::io::{self, Write};
-use std::process;
-use toml::Value;
+mod rules;
+
+use self::rules::Rules;
+use anyhow;
+use fehler::throws;
 
 type Error = anyhow::Error;
 
+#[derive(Clone)]
 pub enum Flow {
     Income,
     Expense,
@@ -32,6 +29,12 @@ impl From<&str> for Flow {
             "支出" => Flow::Expense,
             _ => Flow::Unknown(s.to_owned()),
         }
+    }
+}
+
+impl Default for Flow {
+    fn default() -> Self {
+        Flow::Unknown("default".to_owned())
     }
 }
 
@@ -59,12 +62,9 @@ pub trait Transaction {
     fn flow(&self) -> Flow;
 }
 
-static RULES_PATH: &str = "rules.toml";
-
 pub struct Bean {
     transactions: Vec<Box<dyn Transaction>>,
     fund_account: String,
-    rules: Option<Value>,
 }
 
 impl Bean {
@@ -72,7 +72,6 @@ impl Bean {
         Self {
             transactions: Vec::new(),
             fund_account: account.to_owned(),
-            rules: None,
         }
     }
 
@@ -81,75 +80,12 @@ impl Bean {
     }
 
     #[throws]
-    pub fn load_rules() -> Value {
-        let mut file = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .create(true)
-            .open(RULES_PATH)
-            .context("Load rules failed")?;
-        let mut contents = String::new();
-        file.read_to_string(&mut contents)?;
-        contents.parse::<Value>()?
-    }
-
-    #[throws]
-    pub fn set_rules(&mut self) -> &mut Self {
-        let rules = Self::load_rules()?;
-        let mut new_rules = HashMap::new();
-        for transaction in &self.transactions {
-            let payee = transaction.payee()?;
-            if rules.get(&payee).is_none() {
-                new_rules.insert(payee, "");
-            }
-        }
-        let has_empty = new_rules.values().any(|v| v.is_empty());
-        if has_empty {
-            print!("There are new rules should be specified first, save and edit? (yes/no)");
-            io::stdout().flush().unwrap();
-
-            let mut input = String::new();
-            io::stdin().read_line(&mut input)?;
-            match input.trim() {
-                "yes" | "y" => {
-                    // Append new rules
-                    let contents = new_rules
-                        .iter()
-                        .map(|(k, v)| format!("'{}' = '{}'", k, v))
-                        .collect::<Vec<_>>()
-                        .join("\n");
-                    let mut rules_file = OpenOptions::new().append(true).open(RULES_PATH)?;
-                    rules_file.write_all(b"\n")?;
-                    rules_file.write_all(contents.as_bytes())?;
-                    // edit
-                    let editor = var("EDITOR").unwrap();
-                    process::Command::new(editor).arg(RULES_PATH).status()?;
-                    // Reload rules
-                    self.rules = Some(Self::load_rules()?);
-                }
-                _ => throw!(anyhow!("Exit")),
-            }
-        } else {
-            self.rules = Some(rules);
-        }
-        self
-    }
-
-    #[throws]
-    pub fn output(&self) -> String {
-        let rules = self
-            .rules
-            .as_ref()
-            .ok_or_else(|| anyhow!("No rules applied"))?;
+    pub fn output_with_rules(&self, rules: Rules) -> String {
         let mut output = String::new();
         for transaction in &self.transactions {
             let payee = transaction.payee()?;
             let flow = transaction.flow()?;
-            let mut to_account = rules
-                .get(&payee)
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_owned();
+            let mut to_account = rules.get_payee_account(&payee).unwrap_or("").to_owned();
 
             let flag = if to_account.is_empty() || flow.is_unknown() {
                 "!"
@@ -191,5 +127,41 @@ impl Bean {
             output.push('\n');
         }
         output
+    }
+
+    #[throws]
+    pub fn output(&self) -> String {
+        let mut rules = Rules::from_file()?;
+        rules.merge_with_edit(&self.transactions)?;
+        self.output_with_rules(rules)?
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Bean;
+    use super::Rules;
+    use crate::test_helpers::MockTransanction;
+    use anyhow;
+    use fehler::throws;
+
+    type Error = anyhow::Error;
+
+    #[test]
+    #[throws]
+    fn test_output() {
+        let mut bean = Bean::new("Assets:Test");
+        let mut transaction = MockTransanction::default();
+        transaction.date = "2020-04-01";
+        transaction.payee = "SomeShop";
+        transaction.narration = "some notes";
+        bean.add(transaction);
+        assert_eq!(
+            bean.output_with_rules(Rules::from_str("")?)?,
+            r#"2020-04-01 ! "SomeShop" "some notes"
+  0 CNY
+  Assets:Test
+"#
+        );
     }
 }

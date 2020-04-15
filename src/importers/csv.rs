@@ -54,6 +54,6 @@ impl Parser {
         for record in self.parse()? {
             bean.add(constructor(record));
         }
-        bean.set_rules()?.output()?
+        bean.output()?
     }
 }

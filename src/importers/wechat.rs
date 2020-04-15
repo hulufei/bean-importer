@@ -140,7 +140,7 @@ mod tests {
         let wechat = Wechat::new(r);
         assert_eq!(
             wechat.metadata()?,
-            vec![("UnknownFlow".to_owned(), "unknownflow".to_owned())]
+            vec![("unknown_flow".to_owned(), t.flow.to_owned())]
         )
     }
 }
