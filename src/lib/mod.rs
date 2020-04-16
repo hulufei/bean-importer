@@ -46,8 +46,8 @@ pub trait Transaction {
     fn payee(&self) -> &str;
 
     #[throws]
-    fn fund(&self) -> &str {
-        ""
+    fn fund(&self) -> Option<&str> {
+        None
     }
 
     #[throws]

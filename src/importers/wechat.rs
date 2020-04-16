@@ -55,7 +55,11 @@ impl Transaction for Wechat {
     #[throws]
     fn flow(&self) -> Flow {
         let flow = self.pick("flow", 4, Self::default_transform)?;
-        Flow::from(flow)
+        let status = self.pick("status", 7, Self::default_transform)?;
+        match status {
+            "已全额退款" => Flow::Unknown(status),
+            _ => Flow::from(flow),
+        }
     }
 
     #[throws]
@@ -139,5 +143,18 @@ mod tests {
         let r = gen_record(&t.as_string())?;
         let wechat = Wechat::new(r);
         assert_eq!(wechat.metadata()?, vec![("unknown_flow", t.flow)])
+    }
+
+    #[test]
+    #[throws]
+    fn mark_unknown_for_refund() {
+        let t = Trans {
+            flow: "收入",
+            status: "已全额退款",
+            ..Trans::default()
+        };
+        let r = gen_record(&t.as_string())?;
+        let wechat = Wechat::new(r);
+        assert_eq!(wechat.metadata()?, vec![("unknown_flow", t.status)])
     }
 }
