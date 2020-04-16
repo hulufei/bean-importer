@@ -20,7 +20,7 @@ pub struct MockTransanction<'a> {
     pub date: &'a str,
     pub payee: &'a str,
     pub narration: &'a str,
-    pub flow: Flow,
+    pub flow: Flow<'a>,
     pub amount: f32,
     pub meta: Vec<(&'a str, &'a str)>,
 }
@@ -36,16 +36,16 @@ impl MockTransanction<'_> {
 
 impl Transaction for MockTransanction<'_> {
     #[throws]
-    fn date(&self) -> String {
-        self.date.to_owned()
+    fn date(&self) -> &str {
+        self.date
     }
     #[throws]
-    fn payee(&self) -> String {
-        self.payee.to_owned()
+    fn payee(&self) -> &str {
+        self.payee
     }
     #[throws]
-    fn narration(&self) -> String {
-        self.narration.to_owned()
+    fn narration(&self) -> &str {
+        self.narration
     }
     #[throws]
     fn flow(&self) -> Flow {
@@ -56,10 +56,7 @@ impl Transaction for MockTransanction<'_> {
         self.amount
     }
     #[throws]
-    fn metadata(&self) -> Vec<(String, String)> {
-        self.meta
-            .iter()
-            .map(|v| (v.0.to_owned(), v.1.to_owned()))
-            .collect()
+    fn metadata(&self) -> Vec<(&str, &str)> {
+        self.meta.clone()
     }
 }

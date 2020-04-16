@@ -22,24 +22,24 @@ impl<'a> Alipay {
         pick(&self.0, name, i, transform)?
     }
 
-    fn default_transform(s: &str) -> Option<String> {
-        Some(s.to_owned())
+    fn default_transform(s: &str) -> Option<&str> {
+        Some(s)
     }
 }
 
 impl Transaction for Alipay {
     #[throws]
-    fn date(&self) -> String {
-        self.pick("date", 3, |s| s.split_whitespace().next().map(String::from))?
+    fn date(&self) -> &str {
+        self.pick("date", 3, |s| s.split_whitespace().next())?
     }
 
     #[throws]
-    fn payee(&self) -> String {
+    fn payee(&self) -> &str {
         self.pick("payee", 7, Self::default_transform)?
     }
 
     #[throws]
-    fn narration(&self) -> String {
+    fn narration(&self) -> &str {
         self.pick("narration", 8, Self::default_transform)?
     }
 
@@ -55,7 +55,7 @@ impl Transaction for Alipay {
     #[throws]
     fn flow(&self) -> Flow {
         let flow = self.pick("flow", 10, Self::default_transform)?;
-        Flow::from(flow.as_str())
+        Flow::from(flow)
     }
 }
 

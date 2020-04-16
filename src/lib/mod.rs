@@ -7,13 +7,13 @@ use fehler::throws;
 type Error = anyhow::Error;
 
 #[derive(Clone)]
-pub enum Flow {
+pub enum Flow<'a> {
     Income,
     Expense,
-    Unknown(String),
+    Unknown(&'a str),
 }
 
-impl Flow {
+impl Flow<'_> {
     pub fn is_unknown(&self) -> bool {
         match self {
             Flow::Unknown(_) => true,
@@ -22,36 +22,41 @@ impl Flow {
     }
 }
 
-impl From<&str> for Flow {
-    fn from(s: &str) -> Self {
+impl<'a> From<&'a str> for Flow<'a> {
+    fn from(s: &'a str) -> Self {
         match s {
             "收入" => Flow::Income,
             "支出" => Flow::Expense,
-            _ => Flow::Unknown(s.to_owned()),
+            _ => Flow::Unknown(s),
         }
     }
 }
 
-impl Default for Flow {
+impl Default for Flow<'_> {
     fn default() -> Self {
-        Flow::Unknown("default".to_owned())
+        Flow::Unknown("default")
     }
 }
 
 pub trait Transaction {
     #[throws]
-    fn date(&self) -> String;
+    fn date(&self) -> &str;
 
     #[throws]
-    fn payee(&self) -> String;
+    fn payee(&self) -> &str;
 
     #[throws]
-    fn narration(&self) -> String;
+    fn fund(&self) -> &str {
+        ""
+    }
+
+    #[throws]
+    fn narration(&self) -> &str;
 
     /// Keys must begin with a lowercase character from a-z and may contain (uppercase or lowercase) letters,
     /// numbers, dashes and underscores.
     #[throws]
-    fn metadata(&self) -> Vec<(String, String)> {
+    fn metadata(&self) -> Vec<(&str, &str)> {
         vec![]
     }
 

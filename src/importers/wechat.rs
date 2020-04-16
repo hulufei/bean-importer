@@ -22,24 +22,24 @@ impl<'a> Wechat {
         pick(&self.0, name, i, transform)?
     }
 
-    fn default_transform(s: &str) -> Option<String> {
-        Some(s.to_owned())
+    fn default_transform(s: &str) -> Option<&str> {
+        Some(s)
     }
 }
 
 impl Transaction for Wechat {
     #[throws]
-    fn date(&self) -> String {
-        self.pick("date", 0, |s| s.split_whitespace().next().map(String::from))?
+    fn date(&self) -> &str {
+        self.pick("date", 0, |s| s.split_whitespace().next())?
     }
 
     #[throws]
-    fn payee(&self) -> String {
+    fn payee(&self) -> &str {
         self.pick("payee", 2, Self::default_transform)?
     }
 
     #[throws]
-    fn narration(&self) -> String {
+    fn narration(&self) -> &str {
         self.pick("narration", 3, Self::default_transform)?
     }
 
@@ -55,14 +55,14 @@ impl Transaction for Wechat {
     #[throws]
     fn flow(&self) -> Flow {
         let flow = self.pick("flow", 4, Self::default_transform)?;
-        Flow::from(flow.as_str())
+        Flow::from(flow)
     }
 
     #[throws]
-    fn metadata(&self) -> Vec<(String, String)> {
+    fn metadata(&self) -> Vec<(&str, &str)> {
         let mut meta = vec![];
         if let Flow::Unknown(s) = self.flow()? {
-            meta.push(("unknown_flow".to_owned(), s))
+            meta.push(("unknown_flow", s))
         }
         meta
     }
@@ -138,9 +138,6 @@ mod tests {
         };
         let r = gen_record(&t.as_string())?;
         let wechat = Wechat::new(r);
-        assert_eq!(
-            wechat.metadata()?,
-            vec![("unknown_flow".to_owned(), t.flow.to_owned())]
-        )
+        assert_eq!(wechat.metadata()?, vec![("unknown_flow", t.flow)])
     }
 }
