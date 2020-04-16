@@ -100,10 +100,25 @@ impl Rules {
         process::Command::new(editor).arg(RULES_PATH).status()?;
     }
 
+    fn get_payee(&self, payee: &str, key: &str) -> Option<&str> {
+        self.content["payee"].as_table().and_then(|table| {
+            table[payee]
+                .as_inline_table()
+                .and_then(|t| t.get(key))
+                .and_then(|v| v.as_str())
+        })
+    }
+
     pub fn get_payee_account(&self, payee: &str) -> Option<&str> {
-        self.content["payee"]
-            .as_table()
-            .and_then(|table| table[payee].as_str())
+        self.get_payee(payee, "account").or_else(|| {
+            self.content["payee"]
+                .as_table()
+                .and_then(|table| table[payee].as_str())
+        })
+    }
+
+    pub fn get_payee_alias(&self, payee: &str) -> Option<&str> {
+        self.get_payee(payee, "alias")
     }
 
     pub fn get_fund_account(&self, fund: &str) -> Option<&str> {
@@ -188,6 +203,19 @@ test = "Expense:Test"
 "#,
         )?;
         assert_eq!(rules.get_payee_account("test"), Some("Expense:Test"));
+    }
+
+    #[throws]
+    #[test]
+    fn test_get_payee_account_with_alias() {
+        let rules = Rules::from_str(
+            r#"
+[payee]
+test = { alias = "aliased", account = "Expense:Test" }
+"#,
+        )?;
+        assert_eq!(rules.get_payee_account("test"), Some("Expense:Test"));
+        assert_eq!(rules.get_payee_alias("test"), Some("aliased"));
     }
 
     #[throws]

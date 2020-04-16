@@ -120,7 +120,7 @@ impl<'a> Bean<'a> {
   {account}{amount} CNY
   {fund_account}"##,
                     date = transaction.date()?,
-                    payee = payee,
+                    payee = rules.get_payee_alias(payee).unwrap_or(payee),
                     narration = transaction.narration()?,
                     flag = flag,
                     account = to_account,
@@ -162,10 +162,14 @@ mod tests {
         transaction.payee = "SomeShop";
         transaction.narration = "some notes";
         bean.add(transaction);
+        let rules = r#"
+[payee]
+"SomeShop" = "Expenses:Custom"
+"#;
         assert_eq!(
-            bean.output_with_rules(Rules::from_str("")?)?,
+            bean.output_with_rules(Rules::from_str(rules)?)?,
             r#"2020-04-01 ! "SomeShop" "some notes"
-  0 CNY
+  Expenses:Custom 0 CNY
   Assets:Test
 "#
         );
@@ -178,16 +182,35 @@ mod tests {
         let mut transaction = MockTransanction::default();
         transaction.fund = "custom";
         bean.add(transaction);
-        assert_eq!(
-            bean.output_with_rules(Rules::from_str(
-                r#"
+        let rules = r#"
 [fund]
 "custom" = "Assets:Custom"
-"#
-            )?)?,
+"#;
+        assert_eq!(
+            bean.output_with_rules(Rules::from_str(rules)?)?,
             r#" ! "" ""
   0 CNY
   Assets:Custom
+"#
+        );
+    }
+
+    #[throws]
+    #[test]
+    fn test_alias() {
+        let mut bean = Bean::new("Assets:Test");
+        let mut transaction = MockTransanction::default();
+        transaction.payee = "test";
+        bean.add(transaction);
+        let rules = r#"
+[payee]
+"test" = { alias = "aliased", account = "Expenses:Aliased" }
+"#;
+        assert_eq!(
+            bean.output_with_rules(Rules::from_str(rules)?)?,
+            r#" ! "aliased" ""
+  Expenses:Aliased 0 CNY
+  Assets:Test
 "#
         );
     }
