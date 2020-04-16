@@ -46,12 +46,12 @@ pub trait Transaction {
     fn payee(&self) -> &str;
 
     #[throws]
-    fn fund(&self) -> Option<&str> {
-        None
+    fn fund(&self) -> &str {
+        ""
     }
 
     #[throws]
-    fn narration(&self) -> &str;
+    fn narration(&self) -> String;
 
     /// Keys must begin with a lowercase character from a-z and may contain (uppercase or lowercase) letters,
     /// numbers, dashes and underscores.
@@ -67,16 +67,16 @@ pub trait Transaction {
     fn flow(&self) -> Flow;
 }
 
-pub struct Bean {
+pub struct Bean<'a> {
     transactions: Vec<Box<dyn Transaction>>,
-    fund_account: String,
+    default_fund: &'a str,
 }
 
-impl Bean {
-    pub fn new(account: &str) -> Self {
+impl<'a> Bean<'a> {
+    pub fn new(default_fund: &'a str) -> Self {
         Self {
             transactions: Vec::new(),
-            fund_account: account.to_owned(),
+            default_fund,
         }
     }
 
@@ -90,6 +90,7 @@ impl Bean {
         for transaction in &self.transactions {
             let payee = transaction.payee()?;
             let flow = transaction.flow()?;
+            let fund = transaction.fund()?;
             let mut to_account = rules.get_payee_account(&payee).unwrap_or("").to_owned();
 
             let flag = if to_account.is_empty() || flow.is_unknown() {
@@ -125,7 +126,7 @@ impl Bean {
                     account = to_account,
                     amount = transaction.amount()?,
                     metadata = metadata,
-                    fund_account = self.fund_account
+                    fund_account = rules.get_fund_account(fund).unwrap_or(self.default_fund)
                 )
                 .as_str(),
             );
@@ -166,6 +167,27 @@ mod tests {
             r#"2020-04-01 ! "SomeShop" "some notes"
   0 CNY
   Assets:Test
+"#
+        );
+    }
+
+    #[test]
+    #[throws]
+    fn test_output_with_fund() {
+        let mut bean = Bean::new("Assets:Test");
+        let mut transaction = MockTransanction::default();
+        transaction.fund = "custom";
+        bean.add(transaction);
+        assert_eq!(
+            bean.output_with_rules(Rules::from_str(
+                r#"
+[fund]
+"custom" = "Assets:Custom"
+"#
+            )?)?,
+            r#" ! "" ""
+  0 CNY
+  Assets:Custom
 "#
         );
     }

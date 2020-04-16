@@ -41,18 +41,30 @@ impl Rules {
     }
 
     #[throws]
-    fn merge(&mut self, transactions: &[Box<dyn Transaction>]) {
+    fn merge_to_table<F>(&mut self, transactions: &[Box<dyn Transaction>], name: &str, getter: F)
+    where
+        F: Fn(&Box<dyn Transaction>) -> anyhow::Result<&str>,
+    {
         let root = self.content.as_table_mut();
-        let payee_table = root.entry("payee").or_insert(table());
-        if let Some(table) = payee_table.as_table_mut() {
+        let entry = root.entry(name).or_insert(table());
+        if let Some(table) = entry.as_table_mut() {
             for transaction in transactions {
-                let payee = transaction.payee()?;
-                if !table.contains_key(&payee) {
+                let key = getter(transaction)?;
+                if key.is_empty() {
+                    continue;
+                }
+                if !table.contains_key(&key) {
                     self.is_dirty = true;
                 }
-                table.entry(&payee).or_insert(value(""));
+                table.entry(&key).or_insert(value(""));
             }
         }
+    }
+
+    #[throws]
+    fn merge(&mut self, transactions: &[Box<dyn Transaction>]) {
+        self.merge_to_table(transactions, "fund", |t| t.fund())?;
+        self.merge_to_table(transactions, "payee", |t| t.payee())?;
     }
 
     #[throws]
@@ -77,7 +89,7 @@ impl Rules {
 
     #[throws]
     fn save(&self) {
-        let mut rules_file = OpenOptions::new().append(true).open(RULES_PATH)?;
+        let mut rules_file = OpenOptions::new().write(true).open(RULES_PATH)?;
         let content = self.content.to_string_in_original_order();
         rules_file.write_all(content.as_bytes())?;
     }
@@ -92,6 +104,13 @@ impl Rules {
         self.content["payee"]
             .as_table()
             .and_then(|table| table[payee].as_str())
+    }
+
+    pub fn get_fund_account(&self, fund: &str) -> Option<&str> {
+        self.content["fund"]
+            .as_table()
+            .and_then(|table| table[fund].as_str())
+            .filter(|s| !s.is_empty())
     }
 }
 
@@ -115,14 +134,20 @@ mod tests {
     #[test]
     fn test_merge_to_empty() {
         let mut rules = Rules::from_str("")?;
-        let transactions = vec![MockTransanction::gen_with_payee("test")];
+        let transactions = vec![
+            MockTransanction::gen_with_payee("starbuck"),
+            MockTransanction::gen_with_fund("wechat"),
+        ];
         rules.merge(&transactions)?;
         assert_eq!(rules.is_dirty, true);
         assert_eq!(
             rules.content.to_string(),
             r#"
+[fund]
+wechat = ""
+
 [payee]
-test = ""
+starbuck = ""
 "#
         );
     }
@@ -147,6 +172,8 @@ test = "existed"
 [payee]
 test = "existed"
 newone = ""
+
+[fund]
 "#
         );
     }
@@ -161,5 +188,18 @@ test = "Expense:Test"
 "#,
         )?;
         assert_eq!(rules.get_payee_account("test"), Some("Expense:Test"));
+    }
+
+    #[throws]
+    #[test]
+    fn test_get_fund_account() {
+        let rules = Rules::from_str(
+            r#"
+[fund]
+wechat = "Assets:Wechat"
+"#,
+        )?;
+        assert_eq!(rules.get_fund_account("wechat"), Some("Assets:Wechat"));
+        assert_eq!(rules.get_fund_account("hole"), None);
     }
 }

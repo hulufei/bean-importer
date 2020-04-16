@@ -22,6 +22,21 @@ impl<'a> Wechat {
         pick(&self.0, name, i, transform)?
     }
 
+    #[throws]
+    fn status(&self) -> &str {
+        self.pick("status", 7, Self::default_transform)?
+    }
+
+    #[throws]
+    fn trade_type(&self) -> &str {
+        self.pick("trade_type", 1, Self::default_transform)?
+    }
+
+    #[throws]
+    fn remark(&self) -> &str {
+        self.pick("remark", 10, Self::default_transform)?
+    }
+
     fn default_transform(s: &str) -> Option<&str> {
         Some(s)
     }
@@ -39,8 +54,18 @@ impl Transaction for Wechat {
     }
 
     #[throws]
-    fn narration(&self) -> &str {
-        self.pick("narration", 3, Self::default_transform)?
+    fn narration(&self) -> String {
+        match self.status()? {
+            "提现已到账" => format!("{} {}", self.trade_type()?, self.remark()?),
+            _ => self
+                .pick("narration", 3, Self::default_transform)?
+                .to_owned(),
+        }
+    }
+
+    #[throws]
+    fn fund(&self) -> &str {
+        self.pick("fund", 6, Self::default_transform)?
     }
 
     #[throws]
@@ -55,9 +80,9 @@ impl Transaction for Wechat {
     #[throws]
     fn flow(&self) -> Flow {
         let flow = self.pick("flow", 4, Self::default_transform)?;
-        let status = self.pick("status", 7, Self::default_transform)?;
+        let status = self.status()?;
         match status {
-            "已全额退款" => Flow::Unknown(status),
+            "已全额退款" | "提现已到账" => Flow::Unknown(status),
             _ => Flow::from(flow),
         }
     }
@@ -94,7 +119,7 @@ mod tests {
         commodity: &'a str,
         flow: &'a str,
         amount: &'a str,
-        payment: &'a str,
+        fund: &'a str,
         status: &'a str,
         trade_id: &'a str,
         store_id: &'a str,
@@ -109,13 +134,22 @@ mod tests {
                 self.commodity,
                 self.flow,
                 self.amount,
-                self.payment,
+                self.fund,
                 self.status,
                 self.trade_id,
                 self.store_id,
                 self.remark,
             ]
             .join(",")
+        }
+    }
+
+    fn gen_with_draw<'a>() -> Trans<'a> {
+        Trans {
+            trade_type: "零钱提现",
+            status: "提现已到账",
+            remark: "服务费¥0.37",
+            ..Trans::default()
         }
     }
 
@@ -131,6 +165,18 @@ mod tests {
         let r = gen_record(&t.as_string())?;
         let wechat = Wechat::new(r);
         assert_eq!(wechat.date()?, "2020-03-30")
+    }
+
+    #[test]
+    #[throws]
+    fn get_fund() {
+        let t = Trans {
+            fund: "CCB",
+            ..Trans::default()
+        };
+        let r = gen_record(&t.as_string())?;
+        let wechat = Wechat::new(r);
+        assert_eq!(wechat.fund()?, "CCB")
     }
 
     #[test]
@@ -156,5 +202,26 @@ mod tests {
         let r = gen_record(&t.as_string())?;
         let wechat = Wechat::new(r);
         assert_eq!(wechat.metadata()?, vec![("unknown_flow", t.status)])
+    }
+
+    #[test]
+    #[throws]
+    fn mark_unknown_for_with_draw() {
+        let t = gen_with_draw();
+        let r = gen_record(&t.as_string())?;
+        let wechat = Wechat::new(r);
+        assert_eq!(wechat.metadata()?, vec![("unknown_flow", t.status)])
+    }
+
+    #[test]
+    #[throws]
+    fn get_narration_with_draw() {
+        let t = gen_with_draw();
+        let r = gen_record(&t.as_string())?;
+        let wechat = Wechat::new(r);
+        assert_eq!(
+            wechat.narration()?,
+            format!("{} {}", t.trade_type, t.remark)
+        )
     }
 }

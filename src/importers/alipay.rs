@@ -39,8 +39,9 @@ impl Transaction for Alipay {
     }
 
     #[throws]
-    fn narration(&self) -> &str {
+    fn narration(&self) -> String {
         self.pick("narration", 8, Self::default_transform)?
+            .to_owned()
     }
 
     #[throws]

@@ -19,6 +19,7 @@ pub fn gen_record(s: &str) -> StringRecord {
 pub struct MockTransanction<'a> {
     pub date: &'a str,
     pub payee: &'a str,
+    pub fund: &'a str,
     pub narration: &'a str,
     pub flow: Flow<'a>,
     pub amount: f32,
@@ -29,6 +30,12 @@ impl MockTransanction<'_> {
     pub fn gen_with_payee(payee: &'static str) -> Box<dyn Transaction> {
         Box::new(MockTransanction {
             payee,
+            ..MockTransanction::default()
+        })
+    }
+    pub fn gen_with_fund(fund: &'static str) -> Box<dyn Transaction> {
+        Box::new(MockTransanction {
+            fund,
             ..MockTransanction::default()
         })
     }
@@ -44,8 +51,12 @@ impl Transaction for MockTransanction<'_> {
         self.payee
     }
     #[throws]
-    fn narration(&self) -> &str {
-        self.narration
+    fn fund(&self) -> &str {
+        self.fund
+    }
+    #[throws]
+    fn narration(&self) -> String {
+        self.narration.to_owned()
     }
     #[throws]
     fn flow(&self) -> Flow {
