@@ -51,7 +51,7 @@ pub trait Transaction {
     }
 
     #[throws]
-    fn narration(&self) -> String;
+    fn narration(&self) -> &str;
 
     /// Keys must begin with a lowercase character from a-z and may contain (uppercase or lowercase) letters,
     /// numbers, dashes and underscores.

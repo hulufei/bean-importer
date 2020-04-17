@@ -54,12 +54,17 @@ impl Transaction for Wechat {
     }
 
     #[throws]
-    fn narration(&self) -> String {
-        match self.status()? {
-            "提现已到账" => format!("{} {}", self.trade_type()?, self.remark()?),
-            _ => self
-                .pick("narration", 3, Self::default_transform)?
-                .to_owned(),
+    fn narration(&self) -> &str {
+        let commodity = self.pick("narration", 3, Self::default_transform)?;
+        if commodity == "/" {
+            let remark = self.remark()?;
+            if remark == "/" {
+                self.trade_type()?
+            } else {
+                remark
+            }
+        } else {
+            commodity
         }
     }
 
@@ -91,7 +96,7 @@ impl Transaction for Wechat {
     fn metadata(&self) -> Vec<(&str, &str)> {
         let mut meta = vec![];
         if let Flow::Unknown(s) = self.flow()? {
-            meta.push(("unknown_flow", s))
+            meta.push(("unknown_flow", s));
         }
         meta
     }
@@ -147,6 +152,7 @@ mod tests {
     fn gen_with_draw<'a>() -> Trans<'a> {
         Trans {
             trade_type: "零钱提现",
+            commodity: "/",
             status: "提现已到账",
             remark: "服务费¥0.37",
             ..Trans::default()
@@ -219,9 +225,6 @@ mod tests {
         let t = gen_with_draw();
         let r = gen_record(&t.as_string())?;
         let wechat = Wechat::new(r);
-        assert_eq!(
-            wechat.narration()?,
-            format!("{} {}", t.trade_type, t.remark)
-        )
+        assert_eq!(wechat.narration()?, t.remark)
     }
 }

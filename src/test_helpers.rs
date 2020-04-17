@@ -55,8 +55,8 @@ impl Transaction for MockTransanction<'_> {
         self.fund
     }
     #[throws]
-    fn narration(&self) -> String {
-        self.narration.to_owned()
+    fn narration(&self) -> &str {
+        self.narration
     }
     #[throws]
     fn flow(&self) -> Flow {
