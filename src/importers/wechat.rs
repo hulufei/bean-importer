@@ -100,6 +100,10 @@ impl Transaction for Wechat {
         }
         meta
     }
+
+    fn display(&self) -> String {
+        format!("{:?}", self.0)
+    }
 }
 
 #[throws]

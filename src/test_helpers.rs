@@ -70,4 +70,7 @@ impl Transaction for MockTransanction<'_> {
     fn metadata(&self) -> Vec<(&str, &str)> {
         self.meta.clone()
     }
+    fn display(&self) -> String {
+        "MockTransanction".to_owned()
+    }
 }

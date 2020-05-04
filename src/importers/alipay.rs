@@ -57,6 +57,16 @@ impl Transaction for Alipay {
         let flow = self.pick("flow", 10, Self::default_transform)?;
         Flow::from(flow)
     }
+
+    fn display(&self) -> String {
+        format!("{:?}", self.0)
+    }
+
+    fn is_valid(&self) -> bool {
+        self.pick("kind", 11, Self::default_transform)
+            .map(|v| v != "交易关闭")
+            .unwrap_or(false)
+    }
 }
 
 #[throws]
@@ -128,5 +138,13 @@ mod tests {
         let r = gen_record(&t.as_string())?;
         let transaction = Alipay::new(r);
         assert_eq!(transaction.date()?, "2020-03-30")
+    }
+
+    #[test]
+    #[throws]
+    fn it_mark_closed_transanction_invalid() {
+        let r = gen_record("xxx	,Cxxx	,2020-04-08 14:56:53 ,                    ,2020-04-23 14:57:12 ,其他（包括阿里巴巴和外部商家）,即时到账交易          ,companyname    ,订单号：Cxxx,100.00,        ,交易关闭    ,0.00     ,0.00     ,                    ,         ,")?;
+        let transaction = Alipay::new(r);
+        assert!(!transaction.is_valid());
     }
 }

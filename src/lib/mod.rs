@@ -65,6 +65,12 @@ pub trait Transaction {
 
     #[throws]
     fn flow(&self) -> Flow;
+
+    fn is_valid(&self) -> bool {
+        true
+    }
+
+    fn display(&self) -> String;
 }
 
 pub struct Bean<'a> {
@@ -81,7 +87,11 @@ impl<'a> Bean<'a> {
     }
 
     pub fn add(&mut self, transaction: impl Transaction + 'static) {
-        self.transactions.push(Box::new(transaction));
+        if transaction.is_valid() {
+            self.transactions.push(Box::new(transaction));
+        } else {
+            eprintln!("Ignored invalid transaction: {}", transaction.display());
+        }
     }
 
     #[throws]
