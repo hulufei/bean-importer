@@ -3,7 +3,7 @@
 Currently support:
 
 - Wechat
-- Alipay
+- [Alipay](https://consumeprod.alipay.com/record/advanced.htm)
 
 ## Usage
 
