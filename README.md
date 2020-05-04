@@ -43,4 +43,4 @@ The `fund` section specify fund source accounts, generally it will be `Assets` a
 specify payee accounts, generally it will be `Expenses` accounts.
 
 The `payee` section support additional `alias` rule to change the payee value, it's good for unifing some payees
-have multiple accounts produce differenct transactions.(eg. have both wechat and alipay accounts)
+have multiple accounts produce different transactions.(eg. have both wechat and alipay accounts)
