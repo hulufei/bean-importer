@@ -32,11 +32,12 @@ The rules like:
 
 ```toml
 [fund]
-name = 'Assets:Account'
+"零钱" = "Assets:Wechat"
+"Some Bank Name" = "Assets:Bank:SomeBank"
 
 [payee]
-name1 = 'Expenses:Account'
-name2 = { alias = 'unified', account = 'Expenses:Unified' }
+"Some Restaurant" = 'Expenses:Account'
+"Another name for some payee" = { alias = 'unified', account = 'Expenses:Unified' }
 ```
 
 The `fund` section specify fund source accounts, generally it will be `Assets` accounts. The `payee` section
