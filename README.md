@@ -13,6 +13,7 @@ USAGE:
 
 FLAGS:
     -d, --debug      Activate debug mode
+    -e, --edit       Activate edit mode
     -h, --help       Prints help information
     -V, --version    Prints version information
 

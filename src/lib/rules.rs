@@ -88,6 +88,12 @@ impl Rules {
     }
 
     #[throws]
+    pub fn merge_and_save(&mut self, transactions: &[Box<dyn Transaction>]) {
+        self.merge(transactions)?;
+        self.save()?;
+    }
+
+    #[throws]
     fn save(&self) {
         let mut rules_file = OpenOptions::new().write(true).open(RULES_PATH)?;
         let content = self.content.to_string_in_original_order();

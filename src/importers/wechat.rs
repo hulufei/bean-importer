@@ -107,8 +107,8 @@ impl Transaction for Wechat {
 }
 
 #[throws]
-pub fn import(input: PathBuf) -> String {
-    let parser = Parser::new(input, 16);
+pub fn import(input: PathBuf, edit: bool) -> String {
+    let parser = Parser::new(input, 16, edit);
     let bean = Bean::new("Assets:Wechat");
     parser.output(bean, Wechat::new)?
 }

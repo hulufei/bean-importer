@@ -23,11 +23,16 @@ pub struct Parser {
     // start from 0
     header_line: usize,
     input: PathBuf,
+    edit: bool,
 }
 
 impl Parser {
-    pub fn new(input: PathBuf, header_line: usize) -> Self {
-        Self { input, header_line }
+    pub fn new(input: PathBuf, header_line: usize, edit: bool) -> Self {
+        Self {
+            input,
+            header_line,
+            edit,
+        }
     }
 
     #[throws]
@@ -54,6 +59,6 @@ impl Parser {
         for record in self.parse()? {
             bean.add(constructor(record));
         }
-        bean.output()?
+        bean.output(self.edit)?
     }
 }

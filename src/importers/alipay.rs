@@ -70,8 +70,8 @@ impl Transaction for Alipay {
 }
 
 #[throws]
-pub fn import(input: PathBuf) -> String {
-    let parser = Parser::new(input, 4);
+pub fn import(input: PathBuf, edit: bool) -> String {
+    let parser = Parser::new(input, 4, edit);
     let bean = Bean::new("Assets:Alipay");
     parser.output(bean, Alipay::new)?
 }

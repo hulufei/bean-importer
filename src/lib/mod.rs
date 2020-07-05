@@ -146,9 +146,13 @@ impl<'a> Bean<'a> {
     }
 
     #[throws]
-    pub fn output(&self) -> String {
+    pub fn output(&self, edit: bool) -> String {
         let mut rules = Rules::from_file()?;
-        rules.merge_with_edit(&self.transactions)?;
+        if edit {
+            rules.merge_with_edit(&self.transactions)?;
+        } else {
+            rules.merge_and_save(&self.transactions)?;
+        }
         self.output_with_rules(rules)?
     }
 }

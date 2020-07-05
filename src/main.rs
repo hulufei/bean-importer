@@ -41,6 +41,11 @@ struct Opt {
     #[structopt(short, long)]
     debug: bool,
 
+    /// Activate edit mode
+    // short and long flags (-e, --edit) will be deduced from the field's name
+    #[structopt(short, long)]
+    edit: bool,
+
     /// Set source(wechat or alipay)
     #[structopt(short = "s", long = "source", default_value = "wechat")]
     source: Source,
@@ -56,8 +61,8 @@ struct Opt {
 fn main() -> anyhow::Result<()> {
     let opt = Opt::from_args();
     let bean = match opt.source {
-        Source::Alipay => alipay::import(opt.input)?,
-        Source::Wechat => wechat::import(opt.input)?,
+        Source::Alipay => alipay::import(opt.input, opt.edit)?,
+        Source::Wechat => wechat::import(opt.input, opt.edit)?,
     };
     match opt.output {
         Some(path) => {
