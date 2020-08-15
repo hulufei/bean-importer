@@ -30,7 +30,7 @@ impl<'a> Alipay {
 impl Transaction for Alipay {
     #[throws]
     fn date(&self) -> &str {
-        self.pick("date", 3, |s| s.split_whitespace().next())?
+        self.pick("date", 2, |s| s.split_whitespace().next())?
     }
 
     #[throws]
@@ -132,7 +132,7 @@ mod tests {
     #[throws]
     fn get_date() {
         let t = Trans {
-            pay_date: "2020-03-30 18:46:56",
+            create_date: "2020-03-30 18:46:56",
             ..Trans::default()
         };
         let r = gen_record(&t.as_string())?;
