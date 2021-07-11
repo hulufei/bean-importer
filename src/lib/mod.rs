@@ -6,7 +6,7 @@ use fehler::throws;
 
 type Error = anyhow::Error;
 
-#[derive(Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum Flow<'a> {
     Income,
     Expense,
@@ -25,8 +25,8 @@ impl Flow<'_> {
 impl<'a> From<&'a str> for Flow<'a> {
     fn from(s: &'a str) -> Self {
         match s {
-            "收入" => Flow::Income,
-            "支出" => Flow::Expense,
+            "已收入" | "收入" => Flow::Income,
+            "已支出" | "支出" => Flow::Expense,
             _ => Flow::Unknown(s),
         }
     }

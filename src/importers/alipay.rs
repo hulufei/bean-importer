@@ -54,7 +54,7 @@ impl Transaction for Alipay {
 
     #[throws]
     fn flow(&self) -> Flow {
-        let flow = self.pick("flow", 10, Self::default_transform)?;
+        let flow = self.pick("flow", 15, Self::default_transform)?;
         Flow::from(flow)
     }
 
@@ -79,7 +79,7 @@ pub fn import(input: PathBuf, edit: bool) -> String {
 #[cfg(test)]
 mod tests {
     use super::Alipay;
-    use crate::lib::Transaction;
+    use crate::lib::{Flow, Transaction};
     use crate::test_helpers::gen_record;
     use fehler::throws;
 
@@ -146,5 +146,13 @@ mod tests {
         let r = gen_record("xxx	,Cxxx	,2020-04-08 14:56:53 ,                    ,2020-04-23 14:57:12 ,其他（包括阿里巴巴和外部商家）,即时到账交易          ,companyname    ,订单号：Cxxx,100.00,        ,交易关闭    ,0.00     ,0.00     ,                    ,         ,")?;
         let transaction = Alipay::new(r);
         assert!(!transaction.is_valid());
+    }
+
+    #[test]
+    #[throws]
+    fn it_handle_yuebao() {
+        let r = gen_record("20210625322930531831 	,                    	,2021-06-25 05:59:17 ,                    ,2021-06-25 05:59:17 ,支付宝网站     ,即时到账交易          ,华安基金管理有限公司      ,余额宝-2021.06.24-收益发放 ,0.52    ,        ,交易成功    ,0.00     ,0.00     ,                    ,已收入      ,")?;
+        let transaction = Alipay::new(r);
+        assert_eq!(transaction.flow()?, Flow::Income);
     }
 }
